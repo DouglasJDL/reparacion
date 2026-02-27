@@ -1,0 +1,1429 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>Wizard Garantías | Webhook v22</title>
+  
+  <!-- Librería para generar Imágenes desde el HTML -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <!-- NUEVO: Librería profesional para compresión de imágenes en el navegador -->
+  <script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js"></script>
+
+  <style>
+    :root {
+      --primary: #b30000;
+      --primary-dark: #8f0000;
+      --primary-light: #fff0f0;
+      --text-main: #111827;
+      --text-muted: #6b7280;
+      --bg-body: #f3f4f6;
+      --bg-card: #ffffff;
+      --border: #e5e7eb;
+      --radius: 16px;
+      --shadow-sm: 0 1px 2px 0 rgba(0,0,0,0.05);
+      --error-color: #ef4444;
+      --success-color: #16a34a;
+    }
+
+    * { box-sizing: border-box; outline: none; -webkit-tap-highlight-color: transparent; }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg-body);
+      color: var(--text-main);
+      margin: 0;
+      padding: 16px;
+      line-height: 1.5;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+    }
+
+    .app-container {
+      width: 100%;
+      max-width: 600px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      margin-bottom: 80px; 
+    }
+
+    /* HEADER */
+    header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+    h1 { font-size: 1.25rem; font-weight: 800; margin: 0; color: #111; letter-spacing: -0.025em; }
+    
+    .progress-bar { height: 6px; background: #e5e7eb; border-radius: 10px; overflow: hidden; margin-bottom: 20px; }
+    .progress-fill { height: 100%; background: var(--primary); width: 0%; transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+    .step-indicator { font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin-bottom: 12px; display: flex; justify-content: space-between; }
+
+    /* CARDS */
+    .card {
+      background: var(--bg-card); border-radius: var(--radius); padding: 24px;
+      box-shadow: var(--shadow-sm); border: 1px solid var(--border);
+      animation: slideIn 0.3s ease-out;
+    }
+    @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    .step-title { font-size: 1.5rem; font-weight: 800; color: var(--text-main); margin: 0 0 8px 0; line-height: 1.2; }
+    .step-desc { font-size: 0.95rem; color: var(--text-muted); margin-bottom: 24px; }
+
+    /* INPUTS */
+    .form-group { margin-bottom: 16px; }
+    label { display: block; font-size: 0.9rem; font-weight: 600; color: #374151; margin-bottom: 6px; }
+    .req { color: var(--primary); }
+    
+    input:not([type="checkbox"]), select, textarea {
+      width: 100%; padding: 14px; border: 1px solid #d1d5db; border-radius: 12px;
+      font-size: 1rem; transition: border 0.2s, box-shadow 0.2s; background: #fff;
+      font-family: inherit; -webkit-appearance: none;
+    }
+    input:not([type="checkbox"]):focus, select:focus, textarea:focus {
+      border-color: var(--primary); box-shadow: 0 0 0 4px var(--primary-light);
+    }
+    input[readonly] { background-color: #f9fafb; color: #6b7280; border-color: #e5e7eb; }
+    
+    .input-error { border-color: var(--error-color) !important; box-shadow: 0 0 0 4px #fee2e2 !important; }
+    .err-msg { color: var(--error-color); font-size: 0.85rem; font-weight: 600; margin-top: 6px; display: none; }
+    .err-msg:not(.hidden) { display: block; animation: slideIn 0.2s ease-out; }
+
+    /* CHECKBOXES */
+    input[type="checkbox"] {
+      -webkit-appearance: auto; appearance: auto;
+      width: 20px; height: 20px; margin: 0;
+      accent-color: var(--primary); cursor: pointer;
+    }
+    .checkbox-row { 
+      display: flex; align-items: center; gap: 12px; padding: 12px; 
+      background: #f9fafb; border-radius: 12px; margin-bottom: 12px; cursor: pointer;
+      border: 1px solid transparent; transition: all 0.2s;
+    }
+    .checkbox-row:hover { background: #f3f4f6; }
+    .checkbox-row.checked { background: var(--primary-light); border-color: var(--primary); color: var(--primary-dark); }
+
+    /* UI ELEMENTS */
+    .type-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .type-card {
+      background: #fff; border: 2px solid var(--border); border-radius: 16px; padding: 20px;
+      text-align: center; cursor: pointer; transition: all 0.2s;
+    }
+    .type-card.selected { border-color: var(--primary); background: var(--primary-light); color: var(--primary); }
+    .type-icon { font-size: 2.5rem; display: block; margin-bottom: 8px; }
+
+    .photo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .photo-card {
+      position: relative; border: 2px dashed #cbd5e1; border-radius: 16px; background: #f8fafc;
+      height: 160px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      cursor: pointer; overflow: hidden; transition: all 0.2s;
+    }
+    .photo-card.has-file { border-style: solid; border-color: var(--success-color); background: #fff; }
+    .photo-card.input-error { border-color: var(--error-color); background: #fef2f2; }
+    .photo-icon { font-size: 2rem; margin-bottom: 4px; display: block; }
+    .photo-preview { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0; display: none; }
+    .has-file .photo-preview { display: block; }
+
+    /* Pattern Lock */
+    .pattern-wrapper { display: flex; flex-direction: column; align-items: center; padding: 20px; border: 2px solid transparent; }
+    .pattern-wrapper.input-error { border-color: var(--error-color); border-radius: 12px; background: #fef2f2; }
+    .pattern-container {
+      position: relative; width: 300px; height: 300px; margin: 10px auto;
+      background: #fff; border-radius: 16px; border: 1px solid #e2e8f0;
+      touch-action: none; user-select: none; cursor: default;
+    }
+    .pattern-svg { position: absolute; top:0; left:0; width:100%; height:100%; pointer-events: none; }
+    .pattern-line { stroke: var(--primary); stroke-width: 6; stroke-linecap: round; fill: none; opacity: 0.7; }
+    .pattern-dot {
+      position: absolute; width: 34px; height: 34px; background: #cbd5e1; border-radius: 50%; 
+      transform: translate(-50%, -50%); transition: transform 0.2s, background 0.2s; pointer-events: none;
+    }
+    .pattern-dot.active { background: var(--primary); transform: translate(-50%, -50%) scale(1.1); box-shadow: 0 0 0 6px rgba(179, 0, 0, 0.2); }
+    
+    footer {
+      position: fixed; bottom: 0; left: 0; right: 0; background: #fff; padding: 16px;
+      border-top: 1px solid #e5e7eb; display: flex; gap: 12px; z-index: 100;
+      box-shadow: 0 -4px 6px -1px rgba(0,0,0,0.05);
+    }
+    .btn {
+      flex: 1; padding: 14px; border-radius: 12px; border: none; font-weight: 700;
+      font-size: 1rem; cursor: pointer; text-align: center; transition: transform 0.1s;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-secondary { background: #f3f4f6; color: #374151; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .hidden { display: none !important; }
+    
+    .loader-overlay {
+      position: fixed; inset: 0; 
+      background: #ffffff; 
+      z-index: 99999; 
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+    }
+    .spinner {
+      width: 40px; height: 40px; border: 4px solid #e5e7eb; border-top-color: var(--primary); 
+      border-radius: 50%; animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+  </style>
+</head>
+<body>
+
+<!-- Loader -->
+<div id="loader" class="loader-overlay hidden">
+  <div class="spinner"></div>
+  <p id="loaderText" style="margin-top:16px; font-weight:600; color:#374151;">Procesando...</p>
+</div>
+
+<div class="app-container">
+  
+  <header>
+    <h1>Wizard Garantías</h1>
+    <button id="btnReset" style="background:none; border:none; color:#6b7280; font-size:0.9rem;">Reiniciar</button>
+  </header>
+
+  <div class="step-indicator">
+    <span id="stepLabel">Inicio</span>
+    <span id="stepCount">1/8</span>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+
+  <!-- PASO 0: TIPO -->
+  <section class="card" id="step0">
+    <h2 class="step-title">¿Qué recibimos hoy?</h2>
+    <p class="step-desc">Selecciona el tipo de dispositivo para comenzar.</p>
+    
+    <div class="type-grid">
+      <div class="type-card selected" id="cardCelular" onclick="selectType('Celular')">
+        <span class="type-icon">📱</span>
+        <span class="type-label">Celular</span>
+      </div>
+      <div class="type-card" id="cardElectro" onclick="selectType('Electronica')">
+        <span class="type-icon">🔌</span>
+        <span class="type-label">Electrónica / Otro</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- PASO 1: IDENTIDAD -->
+  <section class="card hidden" id="step1">
+    <h2 class="step-title">Identificación</h2>
+    <p class="step-desc">Datos básicos del equipo.</p>
+    
+    <div class="form-group">
+      <label>Nombre del Cliente <span class="req">*</span></label>
+      <input id="clienteFinal" placeholder="Ej: Juan Pérez">
+      <div id="err-clienteFinal" class="err-msg hidden"></div>
+    </div>
+
+    <div class="form-group">
+      <label>Marca <span class="req">*</span></label>
+      <select id="brand" onchange="checkCustomBrand()">
+        <option value="">Seleccionar...</option>
+      </select>
+      <input id="customBrand" class="hidden" placeholder="Escribe la marca..." style="margin-top:8px;">
+      <div id="err-brand" class="err-msg hidden"></div>
+      <div id="err-customBrand" class="err-msg hidden"></div>
+    </div>
+    
+    <div class="form-group">
+      <label>Modelo <span class="req">*</span></label>
+      <input id="model" placeholder="Ej: Redmi Note 13">
+      <div id="err-model" class="err-msg hidden"></div>
+    </div>
+
+    <div class="form-group">
+      <label id="lblImei">IMEI (15 dígitos) <span class="req">*</span></label>
+      <input id="imei" type="tel" placeholder="Solo números" maxlength="15" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 15)">
+      <div id="err-imei" class="err-msg hidden"></div>
+    </div>
+  </section>
+
+  <!-- PASO 2: FOTOS Y ACCESORIOS -->
+  <section class="card hidden" id="step2">
+    <h2 class="step-title">Estado Físico y Accesorios</h2>
+    <p class="step-desc">Toma fotos claras del equipo y registra los accesorios incluidos.</p>
+    
+    <div class="photo-grid">
+      <div>
+        <div class="photo-card" id="btnPhotoFront">
+          <div class="photo-placeholder"><span class="photo-icon">📷</span><span class="photo-label">FRENTE</span></div>
+          <img id="prevFront" class="photo-preview">
+          <input type="file" id="fileFront" accept="image/*" hidden>
+        </div>
+        <div id="err-btnPhotoFront" class="err-msg hidden"></div>
+      </div>
+
+      <div>
+        <div class="photo-card" id="btnPhotoBack">
+          <div class="photo-placeholder"><span class="photo-icon">🔄</span><span class="photo-label">ATRÁS</span></div>
+          <img id="prevBack" class="photo-preview">
+          <input type="file" id="fileBack" accept="image/*" hidden>
+        </div>
+        <div id="err-btnPhotoBack" class="err-msg hidden"></div>
+      </div>
+    </div>
+
+    <hr style="margin: 20px 0; border:0; border-top:1px dashed #e5e7eb;">
+
+    <!-- Accesorios (Marcado por defecto) -->
+    <label class="checkbox-row" id="lblAcc" for="chkAccesorios">
+      <input type="checkbox" id="chkAccesorios" checked onchange="toggleAccInputs()">
+      <span style="font-weight:600;">📦 ¿Incluye accesorios? (Cargador, caja...)</span>
+    </label>
+
+    <!-- Contenedor Accesorios (Visible por defecto) -->
+    <div id="wrapAccesorios">
+      <div class="form-group">
+        <label>Lista de accesorios <span class="req">*</span></label>
+        <textarea id="txtAccesorios" placeholder="Ej: Cubo original, cable USB..." style="min-height:80px;"></textarea>
+        <div id="err-txtAccesorios" class="err-msg hidden"></div>
+      </div>
+      <!-- Foto Accesorios -->
+      <label style="display:block; margin-bottom:6px; font-size:0.9rem; font-weight:600;">Foto Accesorios <span class="req">*</span></label>
+      <div class="photo-card" id="btnPhotoAcc" style="height:120px;">
+        <div class="photo-placeholder">
+          <span class="photo-icon">🔌</span>
+          <span class="photo-label">SUBIR FOTO</span>
+        </div>
+        <img id="prevAcc" class="photo-preview">
+        <input type="file" id="fileAcc" accept="image/*" hidden>
+      </div>
+      <div id="err-btnPhotoAcc" class="err-msg hidden"></div>
+    </div>
+  </section>
+
+  <!-- PASO 3: SEGURIDAD -->
+  <section class="card hidden" id="step3">
+    <h2 class="step-title">Seguridad</h2>
+    <p class="step-desc">Detalles de bloqueo y enrolamiento.</p>
+
+    <!-- NUVO ENROLLMENT -->
+    <div class="form-group" style="margin-bottom: 24px;">
+      <label>¿Dispositivo enrolado con Nuvo? <span class="req">*</span></label>
+      <div id="nuvoWrapper" style="display:flex; gap:8px; padding: 2px; border: 2px solid transparent; border-radius: 14px;">
+        <button type="button" id="btnNuvoSi" class="btn btn-secondary" onclick="setNuvo(true)" style="padding:8px; font-size:0.9rem;">Sí</button>
+        <button type="button" id="btnNuvoNo" class="btn btn-secondary" onclick="setNuvo(false)" style="padding:8px; font-size:0.9rem;">No</button>
+      </div>
+      <div id="err-nuvoWrapper" class="err-msg hidden"></div>
+    </div>
+
+    <!-- CHECKBOX: Tiene bloqueo (Marcado por defecto) -->
+    <label class="checkbox-row" id="lblHasLock" for="chkHasLock">
+      <input type="checkbox" id="chkHasLock" checked onchange="toggleSecurityInputs()">
+      <span style="font-weight:600;">🔐 ¿El equipo tiene bloqueo de pantalla?</span>
+    </label>
+
+    <!-- CONTENEDOR INPUTS SEGURIDAD (Visible por defecto) -->
+    <div id="securityInputs" style="margin-bottom:20px;">
+      
+      <div id="lockTypeWrapper" style="margin-bottom: 16px;">
+        <label>Método de desbloqueo principal</label>
+        <div style="display:flex; gap:8px;">
+          <button type="button" id="btnLockPin" class="btn btn-primary" style="padding:8px; font-size:0.9rem;">PIN / Contraseña</button>
+          <button type="button" id="btnLockPattern" class="btn btn-secondary" style="padding:8px; font-size:0.9rem;">Patrón</button>
+        </div>
+        <p style="font-size:0.8rem; color:var(--text-muted); margin-top:6px;">* Si usa Huella o Facial, selecciona PIN/Contraseña.</p>
+      </div>
+
+      <div id="secPattern" class="hidden">
+        <label style="text-align:center; margin-bottom:10px;">Dibuja el Patrón <span class="req">*</span></label>
+        <div class="pattern-wrapper" id="patternWrapper">
+          <div class="pattern-container" id="patternBox">
+            <svg class="pattern-svg" id="patternSvg"></svg>
+          </div>
+          <div style="margin-top:10px; font-family:monospace; font-weight:bold; color:var(--primary);" id="patternCode"></div>
+          <button id="btnClearPattern" style="background:none; border:1px solid #ddd; padding:5px 10px; border-radius:8px; font-size:0.8rem; margin-top:5px;">Borrar</button>
+        </div>
+        <div id="err-patternWrapper" class="err-msg hidden" style="text-align: center;"></div>
+        <div style="text-align:center; margin: 10px 0;">y</div>
+      </div>
+
+      <div class="form-group" id="secPin">
+        <label>PIN / Contraseña <span class="req">*</span></label>
+        <input id="devicePass" type="text" placeholder="Ej: 1234">
+        <div id="err-devicePass" class="err-msg hidden"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PASO 4: AGENCIA -->
+  <section class="card hidden" id="step4">
+    <h2 class="step-title">Origen</h2>
+    <p class="step-desc">Selecciona tu ubicación y recepción.</p>
+    
+    <div class="form-group">
+      <label>Región <span class="req">*</span></label>
+      <select id="regionSelector"><option>Cargando...</option></select>
+    </div>
+    
+    <div class="form-group hidden" id="wrapSucursal">
+      <label>Sucursal <span class="req">*</span></label>
+      <select id="sucursalSelector" disabled><option>Selecciona región</option></select>
+      <div id="err-sucursalSelector" class="err-msg hidden"></div>
+    </div>
+
+    <!-- NUEVO CAMPO: Nombre del agente -->
+    <div class="form-group">
+      <label>¿Quién recibe el equipo en Agencia? <span class="req">*</span></label>
+      <input id="agenteReceptor" placeholder="Ej: Carlos López" type="text">
+      <div id="err-agenteReceptor" class="err-msg hidden"></div>
+    </div>
+
+    <div style="background:#f9fafb; padding:12px; border-radius:12px; font-size:0.9rem;">
+      <p><strong>Agencia:</strong> <span id="viewAgencia">-</span></p>
+      <p><strong>Contacto:</strong> <span id="viewTel">-</span></p>
+      <p><strong>Email:</strong> <span id="viewEmail">-</span></p>
+    </div>
+  </section>
+
+  <!-- PASO 5: DOCUMENTOS -->
+  <section class="card hidden" id="step5">
+    <h2 class="step-title">Documentación</h2>
+    <p class="step-desc">Datos de compra y facturación.</p>
+
+    <div class="form-group">
+      <label>Cliente</label>
+      <input id="clienteNombre" value="INTECSA" readonly>
+    </div>
+
+    <div id="dynOppo" class="hidden">
+      <div class="form-group">
+        <label>No. Cliente (OPPO) <span class="req">*</span></label>
+        <input id="clienteNumero">
+        <div id="err-clienteNumero" class="err-msg hidden"></div>
+      </div>
+      <div class="form-group"><label>Fecha Compra</label><input id="fechaCompra" type="date"></div>
+      <div class="form-group"><label>No. Factura</label><input id="numeroFactura"></div>
+      <div class="form-group"><label>Dirección Retorno</label><input id="direccionRetorno"></div>
+    </div>
+
+    <!-- NUEVO CAMPO: Fecha emisión de factura -->
+    <div class="form-group">
+      <label>Fecha de emisión de factura <span class="req">*</span></label>
+      <input id="fechaEmisionFactura" type="date" onchange="calcularDiasUso()">
+      <div id="diasUsoInfo" style="margin-top: 6px; font-size: 0.9rem; font-weight: 600; color: #374151;"></div>
+      <div id="warn-fechaEmisionFactura" class="hidden" style="color: #ea580c; font-size: 0.85rem; font-weight: 600; margin-top: 4px; background: #fff7ed; padding: 8px; border-radius: 8px; border: 1px solid #fdba74;">
+        ⚠️ Es posible que este artículo no cubra la garantía por días de uso.
+      </div>
+      <div id="err-fechaEmisionFactura" class="err-msg hidden"></div>
+    </div>
+
+    <div class="form-group">
+      <label>Foto de Factura <span class="req">*</span></label>
+      <div class="photo-card" id="btnPhotoFactura" style="height:160px;">
+        <div class="photo-placeholder">
+          <span class="photo-icon">📄</span>
+          <span class="photo-label">SUBIR FOTO</span>
+        </div>
+        <img id="prevFactura" class="photo-preview">
+        <!-- AHORA SOLO ACEPTA IMÁGENES -->
+        <input type="file" id="fileFactura" accept="image/*" hidden>
+      </div>
+      <div id="err-btnPhotoFactura" class="err-msg hidden"></div>
+    </div>
+  </section>
+
+  <!-- PASO 6: DIAGNÓSTICO -->
+  <section class="card hidden" id="step6">
+    <h2 class="step-title">Diagnóstico</h2>
+    <div class="form-group">
+      <label>Descripción de la falla <span class="req">*</span></label>
+      <textarea id="falla" placeholder="Describa detalladamente el problema..." style="min-height:150px;"></textarea>
+      <div id="err-falla" class="err-msg hidden"></div>
+    </div>
+  </section>
+
+  <!-- PASO 7: CONFIRMACIÓN -->
+  <section class="card hidden" id="step7">
+    <h2 class="step-title">Resumen y Envío</h2>
+    <div class="step-desc">Revisa los datos antes de enviar.</div>
+    <div style="background:#f9fafb; padding:16px; border-radius:12px; font-size:0.9rem;" id="finalSummary"></div>
+    <div style="margin-top:20px;">
+      <button id="btnSend" class="btn btn-primary" style="width:100%; font-size:1.1rem; padding:16px;">🚀 Enviar al Sistema</button>
+    </div>
+  </section>
+
+  <!-- PANTALLA EXITO -->
+  <section class="card hidden" id="stepSuccess" style="text-align:center; padding:40px 20px;">
+    <div style="font-size:4rem; margin-bottom:10px;">🎉</div>
+    <h2 class="step-title">¡Enviado Correctamente!</h2>
+    <p class="step-desc" id="successMsg">El caso ha sido registrado.</p>
+    
+    <!-- Contenedor para variables dinámicas de éxito -->
+    <div id="successDetails" style="background:#f0fdf4; padding:12px; border-radius:8px; margin:10px 0; font-size:0.85rem; text-align:left; word-break: break-word; color:#166534; border:1px solid #bbf7d0;">
+    </div>
+    
+    <div style="display:flex; flex-direction:column; gap:12px; margin-top:20px;">
+      <button id="btnPrintConstancia" class="btn btn-primary">📄 Imprimir Constancia</button>
+      <button id="btnNew" class="btn btn-secondary" style="margin-top:10px;">Nuevo Caso</button>
+    </div>
+  </section>
+
+  <!-- PANTALLA ERROR -->
+  <section class="card hidden" id="stepError" style="text-align:center; padding:40px 20px; border-color:var(--error-color);">
+    <div style="font-size:4rem; margin-bottom:10px;">❌</div>
+    <h2 class="step-title" style="color:var(--error-color)">Ocurrió un Error</h2>
+    <p class="step-desc" id="errorMsgServer">No se pudo registrar el caso.</p>
+    <div style="display:flex; gap:12px; margin-top:20px;">
+      <button id="btnBackFromError" class="btn btn-secondary">Retroceder</button>
+      <button id="btnRetry" class="btn btn-primary">Reintentar Envío</button>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer id="mainFooter">
+    <button id="btnBack" class="btn btn-secondary" disabled>Atrás</button>
+    <button id="btnNext" class="btn btn-primary">Siguiente</button>
+  </footer>
+
+</div>
+
+<script>
+// --- CONFIGURACIÓN ---
+const API_URL = 'https://script.google.com/macros/s/AKfycbyhp-TvpIGBrFM5OnIAKFYi7JbwtVPjGgI9VQMmvRGIizSPG7unM40nd4KsB_-wq6U9/exec';
+const WEBHOOK_URL = 'https://n8n.corporacionavanzabusinesstoolspackage.com/webhook-test/7433b5d7-3988-47c1-a2fe-abbdaec256a0'; 
+
+const state = {
+  step: 0,
+  type: 'Celular',
+  brand: '',
+  sucursales: [],
+  photos: { front:null, back:null, acc:null, factura:null },
+  pattern: [],
+  lockMode: 'pin',
+  nuvo: null,
+  serverData: null // Almacena la respuesta del servidor para inyectarla al PDF
+};
+
+const steps = ['step0', 'step1', 'step2', 'step3', 'step4', 'step5', 'step6', 'step7'];
+const labels = ['Inicio', 'Datos', 'Físico', 'Seguridad', 'Agencia', 'Docs', 'Falla', 'Fin'];
+
+const $ = id => document.getElementById(id);
+const show = id => { const el=$(id); if(el) el.classList.remove('hidden'); };
+const hide = id => { const el=$(id); if(el) el.classList.add('hidden'); };
+const toggle = (id, cond) => { const el=$(id); if(el) el.classList.toggle('hidden', !cond); };
+
+function init() {
+  fetchSucursales();
+  populateBrands(); 
+  setLockMode(state.lockMode); 
+  updateUI();
+  setupListeners();
+  setupPatternLock();
+}
+
+function updateUI() {
+  steps.forEach((s, i) => { if(i === state.step) show(s); else hide(s); });
+  hide('stepSuccess'); hide('stepError');
+  
+  if(state.step < steps.length) {
+    $('mainFooter').classList.remove('hidden');
+    $('btnBack').disabled = state.step === 0;
+    $('btnNext').textContent = state.step === steps.length - 1 ? 'Finalizar' : 'Siguiente';
+    $('btnNext').style.display = state.step === steps.length - 1 ? 'none' : 'block'; 
+    
+    if($('lblHasLock')) $('lblHasLock').classList.toggle('checked', $('chkHasLock').checked);
+    if($('lblAcc')) $('lblAcc').classList.toggle('checked', $('chkAccesorios').checked);
+
+    const pct = ((state.step) / (steps.length - 1)) * 100;
+    $('progressFill').style.width = `${pct}%`;
+    $('stepLabel').textContent = labels[state.step] || 'Fin';
+    $('stepCount').textContent = `${state.step + 1}/${steps.length}`;
+  } else {
+    $('mainFooter').classList.add('hidden');
+  }
+  window.scrollTo(0,0);
+}
+
+// Paso 0
+window.selectType = (t) => {
+  state.type = t;
+  $('cardCelular').classList.toggle('selected', t === 'Celular');
+  $('cardElectro').classList.toggle('selected', t === 'Electronica');
+  $('lblImei').textContent = t === 'Celular' ? 'IMEI (15 dígitos) *' : 'Número de Serie (S/N) *';
+  
+  if(t === 'Celular') {
+    show('lockTypeWrapper');
+    setLockMode(state.lockMode);
+  } else {
+    hide('lockTypeWrapper');
+    setLockMode('pin');
+  }
+  
+  populateBrands();
+};
+
+function populateBrands() {
+  const s = $('brand'); s.innerHTML = '<option value="">Seleccionar...</option>';
+  const list = state.type === 'Celular' ? ["XIAOMI", "HONOR", "TECNO", "SAMSUNG", "OPPO"] : ["XIAOMI", "SAMSUNG", "LG", "SONY", "HP", "DELL", "OTRO"];
+  list.forEach(b => { const o = document.createElement('option'); o.value = b; o.textContent = b; s.appendChild(o); });
+}
+
+window.checkCustomBrand = () => {
+  const v = $('brand').value; state.brand = v; toggle('customBrand', v === 'OTRO');
+  if(v==='OPPO') toggle('dynOppo', true); else toggle('dynOppo', false);
+};
+
+function setupPhotoInput(btnId, fileId, imgId, key) {
+  const btn = $(btnId);
+  const file = $(fileId);
+  const img = imgId ? $(imgId) : null;
+
+  if(btn && file) {
+    btn.addEventListener('click', () => {
+      const errEl = $('err-' + btnId);
+      if(errEl) errEl.classList.add('hidden');
+      file.click();
+    });
+    file.addEventListener('change', (e) => {
+      if(e.target.files[0]) {
+        const f = e.target.files[0];
+        
+        // Validar que no sea una imagen duplicada
+        const isDuplicate = Object.entries(state.photos).some(([k, existingFile]) => {
+          if (k !== key && existingFile) {
+            return existingFile.name === f.name && existingFile.size === f.size;
+          }
+          return false;
+        });
+
+        if (isDuplicate) {
+           btn.classList.add('input-error');
+           const errEl = $('err-' + btnId);
+           if(errEl) {
+             errEl.textContent = '⚠️ Esta imagen ya fue subida en otro apartado. Elige una foto diferente.';
+             errEl.classList.remove('hidden');
+           }
+           file.value = ''; // Reset
+           return;
+        }
+        
+        state.photos[key] = f;
+        if(img) {
+          img.src = URL.createObjectURL(f); 
+          img.style.display = 'block';
+        }
+        btn.classList.add('has-file'); btn.classList.remove('input-error');
+        const errEl = $('err-' + btnId);
+        if(errEl) errEl.classList.add('hidden');
+      }
+    });
+  }
+}
+setupPhotoInput('btnPhotoFront', 'fileFront', 'prevFront', 'front');
+setupPhotoInput('btnPhotoBack', 'fileBack', 'prevBack', 'back');
+setupPhotoInput('btnPhotoAcc', 'fileAcc', 'prevAcc', 'acc');
+setupPhotoInput('btnPhotoFactura', 'fileFactura', 'prevFactura', 'factura');
+
+// TOGGLES STEP 3
+window.setNuvo = (val) => {
+  state.nuvo = val;
+  $('btnNuvoSi').className = val === true ? 'btn btn-primary' : 'btn btn-secondary';
+  $('btnNuvoNo').className = val === false ? 'btn btn-primary' : 'btn btn-secondary';
+  $('nuvoWrapper').classList.remove('input-error');
+  $('err-nuvoWrapper').classList.add('hidden');
+};
+
+window.toggleSecurityInputs = () => {
+   const hasLock = $('chkHasLock').checked;
+   toggle('securityInputs', hasLock);
+   if(!hasLock) {
+     $('devicePass').value = '';
+     clearPatternState();
+   } else {
+     if(state.type === 'Celular') {
+       show('lockTypeWrapper');
+       setLockMode(state.lockMode);
+     } else {
+       hide('lockTypeWrapper');
+       setLockMode('pin');
+     }
+   }
+   updateUI();
+};
+
+window.setLockMode = (mode) => {
+  state.lockMode = mode;
+  if(mode === 'pin') {
+    $('btnLockPin').classList.replace('btn-secondary','btn-primary');
+    $('btnLockPattern').classList.replace('btn-primary','btn-secondary');
+    hide('secPattern');
+    $('secPin').querySelector('label').innerHTML = 'PIN / Contraseña <span class="req">*</span>';
+  } else {
+    $('btnLockPattern').classList.replace('btn-secondary','btn-primary');
+    $('btnLockPin').classList.replace('btn-primary','btn-secondary');
+    show('secPattern');
+    $('secPin').querySelector('label').innerHTML = 'PIN de respaldo <span class="req">*</span>';
+  }
+};
+
+window.toggleAccInputs = () => {
+    toggle('wrapAccesorios', $('chkAccesorios').checked);
+    if(!$('chkAccesorios').checked) {
+        $('txtAccesorios').value = '';
+        state.photos.acc = null;
+        $('prevAcc').src = '';
+        $('btnPhotoAcc').classList.remove('has-file');
+    }
+    updateUI();
+};
+
+// Función para calcular los días de uso en base a la fecha de factura
+window.calcularDiasUso = () => {
+  const val = $('fechaEmisionFactura').value;
+  const infoDiv = $('diasUsoInfo');
+  const warnDiv = $('warn-fechaEmisionFactura');
+
+  if(!val) {
+    infoDiv.textContent = '';
+    warnDiv.classList.add('hidden');
+    return;
+  }
+
+  const [y, m, d] = val.split('-');
+  const fechaFactura = new Date(y, m - 1, d);
+  const hoy = new Date();
+  hoy.setHours(0,0,0,0);
+
+  const diffTime = hoy - fechaFactura;
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+  if(diffDays >= 0) {
+    infoDiv.textContent = `Días de uso transcurridos: ${diffDays}`;
+    if(diffDays > 365) {
+      warnDiv.classList.remove('hidden');
+    } else {
+      warnDiv.classList.add('hidden');
+    }
+  } else {
+    infoDiv.textContent = `Fecha futura no válida.`;
+    warnDiv.classList.add('hidden');
+  }
+};
+
+let isDrawing = false;
+let patternDots = [];
+let patternCenters = [];
+
+function setupPatternLock() {
+  const container = $('patternBox');
+  const svg = $('patternSvg');
+  if(!container || !svg) return;
+
+  container.innerHTML = ''; container.appendChild(svg);
+  patternDots = []; patternCenters = [];
+
+  for(let i=0; i<9; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'pattern-dot';
+    const row = Math.floor(i/3); const col = i%3;
+    const x = 50 + (col * 100); const y = 50 + (row * 100);
+    
+    dot.style.left = x + 'px'; dot.style.top = y + 'px';
+    dot.dataset.idx = i+1;
+    container.appendChild(dot);
+    patternDots.push(dot);
+    patternCenters.push({x, y, i:i+1});
+  }
+
+  const getPos = (e) => {
+    const rect = container.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    return { x: clientX - rect.left, y: clientY - rect.top };
+  };
+
+  const updateLine = (curr) => {
+    let path = "";
+    if(state.pattern.length > 0) {
+      const first = patternCenters.find(c => c.i === state.pattern[0]);
+      path = `M ${first.x} ${first.y}`;
+      for(let i=1; i<state.pattern.length; i++) {
+        const p = patternCenters.find(c => c.i === state.pattern[i]);
+        path += ` L ${p.x} ${p.y}`;
+      }
+      if(curr) path += ` L ${curr.x} ${curr.y}`;
+    }
+    svg.innerHTML = `<path d="${path}" class="pattern-line" />`;
+  };
+
+  const checkDot = (pos) => {
+    patternCenters.forEach(c => {
+      const dist = Math.sqrt(Math.pow(pos.x - c.x, 2) + Math.pow(pos.y - c.y, 2));
+      if(dist < 40 && !state.pattern.includes(c.i)) {
+        state.pattern.push(c.i);
+        patternDots[c.i-1].classList.add('active');
+        $('patternCode').textContent = state.pattern.join("-");
+        $('patternWrapper').classList.remove('input-error');
+        $('err-patternWrapper').classList.add('hidden');
+      }
+    });
+  };
+
+  const start = (e) => { 
+      isDrawing = true; 
+      clearPatternState(); 
+      checkDot(getPos(e)); 
+  };
+  
+  const move = (e) => { 
+    if(!isDrawing) return; e.preventDefault();
+    const pos = getPos(e); checkDot(pos); updateLine(pos);
+  };
+  const end = () => { isDrawing = false; updateLine(null); };
+
+  container.addEventListener('mousedown', start); container.addEventListener('touchstart', start);
+  window.addEventListener('mousemove', move); window.addEventListener('touchmove', move);
+  window.addEventListener('mouseup', end); window.addEventListener('touchend', end);
+  
+  if($('btnClearPattern')) $('btnClearPattern').addEventListener('click', clearPatternState);
+}
+
+function clearPatternState() {
+    state.pattern = [];
+    if(patternDots) patternDots.forEach(d => d.classList.remove('active'));
+    if($('patternSvg')) $('patternSvg').innerHTML = '';
+    if($('patternCode')) $('patternCode').textContent = '';
+}
+
+async function fetchSucursales() {
+  const sReg = $('regionSelector');
+  if(sReg) sReg.innerHTML = '<option value="">Cargando regiones...</option>';
+  
+  try {
+    const res = await fetch(API_URL, {
+        method: 'POST', 
+        body: new URLSearchParams({key:'valor'})
+    });
+    
+    if (!res.ok) throw new Error('Servidor respondió con status: ' + res.status);
+    
+    const textData = await res.text();
+    state.sucursales = JSON.parse(textData);
+    
+    const regs = [...new Set(state.sucursales.map(s => s.Region).filter(Boolean))].sort();
+    if(sReg) sReg.innerHTML = '<option value="">Selecciona Región</option>';
+    regs.forEach(r => { 
+        const o = document.createElement('option'); 
+        o.value = r; 
+        o.textContent = r; 
+        if(sReg) sReg.appendChild(o); 
+    });
+  } catch(e) { 
+    // Usamos console.warn en lugar de console.error para no disparar la pantalla de error global del Canvas por problemas CORS/de red.
+    console.warn("No se pudieron cargar las sucursales:", e.message); 
+    if(sReg) sReg.innerHTML = '<option value="">⚠️ Error de red/CORS</option>';
+  }
+}
+
+$('regionSelector').addEventListener('change', (e) => {
+  const reg = e.target.value; 
+  const sSuc = $('sucursalSelector'); 
+  
+  sSuc.innerHTML = '<option value="">Selecciona Sucursal</option>';
+  
+  if(reg && reg !== "") {
+    if($('wrapSucursal')) $('wrapSucursal').classList.remove('hidden');
+    sSuc.disabled = false;
+    const fil = state.sucursales.filter(s => s.Region === reg);
+    fil.forEach(s => { const o = document.createElement('option'); o.value = state.sucursales.indexOf(s); o.textContent = s.Nombre; sSuc.appendChild(o); });
+  } else { 
+    if($('wrapSucursal')) $('wrapSucursal').classList.add('hidden');
+    sSuc.disabled = true; 
+  }
+});
+
+$('sucursalSelector').addEventListener('change', (e) => {
+  const s = state.sucursales[e.target.value];
+  if(s) {
+    $('viewAgencia').textContent = s.Nombre;
+    $('viewTel').textContent = s.Telefono || s.WhatsApp || '-';
+    $('viewEmail').textContent = s.mail || s.correo || (s.Nombre.replace(/\s/g,'').toLowerCase() + '@empresa.com');
+    $('sucursalSelector').classList.remove('input-error');
+    $('err-sucursalSelector').classList.add('hidden');
+  }
+});
+
+// VALIDATION ENHANCED
+function validate() {
+  const s = state.step;
+  const d = { 
+    clienteFinal: $('clienteFinal').value,
+    brand: $('brand').value, custom: $('customBrand').value, model: $('model').value, imei: $('imei').value, 
+    sucursal: $('sucursalSelector').value, falla: $('falla').value
+  };
+  
+  document.querySelectorAll('.input-error').forEach(e => e.classList.remove('input-error'));
+  document.querySelectorAll('.err-msg').forEach(e => { e.classList.add('hidden'); e.textContent = ''; });
+  
+  let firstErr = null;
+  const setErr = (id, msgText) => { 
+      const el = $(id); 
+      if(el) { 
+        el.classList.add('input-error'); 
+        const errEl = $('err-' + id);
+        if(errEl && msgText) {
+          errEl.textContent = msgText;
+          errEl.classList.remove('hidden');
+        }
+        if(!firstErr) firstErr = el; 
+      }
+  };
+
+  if(s === 1) {
+    if(!d.clienteFinal) setErr('clienteFinal', '⚠️ Ingrese el nombre del cliente.');
+    if(!d.brand) setErr('brand', '⚠️ Selecciona una marca.');
+    if(d.brand === 'OTRO' && !d.custom) setErr('customBrand', '⚠️ Especifique la marca.');
+    if(!d.model) setErr('model', '⚠️ Ingrese el modelo del dispositivo.');
+    if(state.type === 'Celular') {
+      if(!d.imei || d.imei.length !== 15) setErr('imei', '⚠️ El IMEI de un celular debe tener exactamente 15 dígitos.');
+    } else {
+      if(!d.imei || d.imei.length < 5) setErr('imei', '⚠️ Ingrese un número de serie válido.');
+    }
+  }
+  if(s === 2) {
+    if(!state.photos.front) setErr('btnPhotoFront', '⚠️ Obligatorio: Toma la foto frontal.');
+    if(!state.photos.back) setErr('btnPhotoBack', '⚠️ Obligatorio: Toma la foto trasera.');
+    if($('chkAccesorios').checked) {
+        if(!$('txtAccesorios').value.trim()) setErr('txtAccesorios', '⚠️ Describe los accesorios (Cargador, caja, etc.).');
+        if(!state.photos.acc) setErr('btnPhotoAcc', '⚠️ Toma una foto que muestre los accesorios.');
+    }
+  }
+  if(s === 3) {
+    if(state.nuvo === null) setErr('nuvoWrapper', '⚠️ Debes elegir Sí o No.');
+    
+    if($('chkHasLock').checked) {
+       const hasPattern = state.pattern.length > 0;
+       const hasPin = $('devicePass').value.trim().length > 0;
+       
+       if(state.type === 'Celular' && state.lockMode === 'pattern') {
+         if(!hasPattern) setErr('patternWrapper', '⚠️ Dibuja el patrón en la cuadrícula.');
+         if(!hasPin) setErr('devicePass', '⚠️ El PIN de respaldo es obligatorio al usar patrón.');
+       } else {
+         if(!hasPin) setErr('devicePass', '⚠️ Ingrese el PIN o contraseña del dispositivo.');
+       }
+    }
+  }
+  if(s === 4) { 
+    if(!d.sucursal || d.sucursal === 'Selecciona región' || d.sucursal === '⚠️ Error de red/CORS') setErr('sucursalSelector', '⚠️ Por favor, selecciona tu sucursal.'); 
+    if(!$('agenteReceptor').value.trim()) setErr('agenteReceptor', '⚠️ Ingrese el nombre de quien recibe en agencia.');
+  }
+  if(s === 5) {
+    if(!$('fechaEmisionFactura').value) setErr('fechaEmisionFactura', '⚠️ Seleccione la fecha de emisión de la factura.');
+    if(!state.photos.factura) setErr('btnPhotoFactura', '⚠️ Debes subir la foto de la factura.');
+    if(d.brand === 'OPPO' && !$('clienteNumero').value) setErr('clienteNumero', '⚠️ Ingrese el número de cliente OPPO.');
+  }
+  if(s === 6) { if(!d.falla) setErr('falla', '⚠️ Describa el motivo de ingreso o la falla.'); }
+
+  if(firstErr) {
+    firstErr.scrollIntoView({behavior: 'smooth', block: 'center'});
+    return false;
+  }
+  return true;
+}
+
+// BASE64 HELPER (Needed for print/PDF rendering)
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = error => reject(error);
+  });
+}
+
+// FUNCIÓN DE COMPRESIÓN DE IMÁGENES
+async function compressImageFile(file) {
+  if (!file) return null;
+  
+  const options = {
+    maxSizeMB: 0.8,          // Peso máximo: ~800KB
+    maxWidthOrHeight: 1920,  // Máximo Ancho/Alto: Resolución Full HD para no perder lectura de texto
+    useWebWorker: true,      // Procesar rápido sin trabar la pantalla
+    fileType: 'image/jpeg'   // Convertir a JPEG asegura consistencia
+  };
+  
+  try {
+    const compressedFile = await imageCompression(file, options);
+    // Preservar el nombre original
+    return new File([compressedFile], file.name, { type: compressedFile.type });
+  } catch (error) {
+    console.warn("Error comprimiendo imagen:", error); // Usamos console.warn en lugar de console.error
+    return file; // Si falla, devolver la original para no detener el proceso
+  }
+}
+
+function setupListeners() {
+  $('btnNext').addEventListener('click', () => {
+    if(validate()) { state.step++; updateUI(); if(state.step === 7) renderSummary(); }
+  });
+  $('btnBack').addEventListener('click', () => { state.step--; updateUI(); });
+  
+  $('btnLockPin').addEventListener('click', () => setLockMode('pin'));
+  $('btnLockPattern').addEventListener('click', () => setLockMode('pattern'));
+  
+  $('btnSend').addEventListener('click', sendData);
+  $('btnRetry').addEventListener('click', sendData);
+  $('btnBackFromError').addEventListener('click', () => { state.step = 7; updateUI(); });
+
+  $('btnReset').addEventListener('click', () => location.reload());
+  $('btnNew').addEventListener('click', () => location.reload());
+  $('btnPrintConstancia').addEventListener('click', printConstancia);
+}
+
+async function sendData() {
+  // Primero scrolleamos hasta arriba
+  window.scrollTo(0, 0);
+
+  show('loader');
+  const loaderText = $('loaderText');
+  
+  try {
+    // --- OPTIMIZACIÓN DE IMÁGENES ANTES DE PROCEDER ---
+    if(loaderText) loaderText.textContent = 'Optimizando peso de imágenes...';
+    
+    if(state.photos.front) state.photos.front = await compressImageFile(state.photos.front);
+    if(state.photos.back) state.photos.back = await compressImageFile(state.photos.back);
+    if(state.photos.acc) state.photos.acc = await compressImageFile(state.photos.acc);
+    if(state.photos.factura) state.photos.factura = await compressImageFile(state.photos.factura);
+
+    if(loaderText) loaderText.textContent = 'Generando Constancia en Imagen...';
+    // --------------------------------------------------
+
+    const d = getPayload();
+    const formData = new FormData();
+    
+    for (const key in d) { formData.append(key, d[key]); }
+    
+    if(state.photos.front) formData.append('foto_frente', state.photos.front);
+    if(state.photos.back) formData.append('foto_atras', state.photos.back);
+    if(state.photos.acc) formData.append('foto_accesorios', state.photos.acc);
+    if(state.photos.factura) formData.append('foto_factura', state.photos.factura);
+
+    // --- GENERACIÓN 100% GARANTIZADA DE IMAGEN (JPG) ---
+    const htmlString = await buildConstanciaHTMLString();
+    const container = document.createElement('div');
+    container.innerHTML = htmlString;
+    
+    // TÉCNICA INFALIBLE: Colocamos el documento físicamente en la pantalla, 
+    // pero queda ESCONDIDO debajo de nuestra pantalla blanca de carga (el Loader que tiene z-index:99999).
+    container.style.position = 'absolute';
+    container.style.top = '0px'; 
+    container.style.left = '0px';
+    container.style.width = '800px'; 
+    container.style.backgroundColor = '#ffffff';
+    container.style.zIndex = '99990'; // Justo debajo del loader
+    document.body.appendChild(container);
+    
+    // Le damos más tiempo (1000ms) para forzar al navegador a dibujar todo
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // Capturamos la pantalla real donde está la constancia usando html2canvas
+    const canvas = await html2canvas(container, {
+      scale: 2, 
+      useCORS: true, 
+      logging: false,
+      scrollY: 0, 
+      scrollX: 0,
+      windowWidth: 800
+    });
+    
+    // Convertimos a imagen JPG de alta calidad
+    const imageBlob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.95));
+    
+    // Limpiamos la pantalla y borramos el contenedor
+    document.body.removeChild(container);
+    
+    // La añadimos al formulario. NOTA IMPORTANTE: Ahora el archivo se llama .jpg
+    formData.append('constancia_imagen', imageBlob, `Constancia_${d.imei}.jpg`);
+    // --------------------------------------------------
+
+    if(loaderText) loaderText.textContent = 'Enviando datos al servidor...';
+
+    // NUEVO: Mensajes dinámicos para mantener al usuario (y al navegador) activos durante esperas largas
+    const slowAlert1 = setTimeout(() => { if(loaderText) loaderText.textContent = 'Subiendo archivos, esto puede tardar unos segundos...'; }, 10000);
+    const slowAlert2 = setTimeout(() => { if(loaderText) loaderText.textContent = 'El servidor está procesando el caso, por favor no cierres la pantalla...'; }, 25000);
+    const slowAlert3 = setTimeout(() => { if(loaderText) loaderText.textContent = 'Aún estamos aquí, finalizando el registro...'; }, 45000);
+
+    // NUEVO: Controlador para forzar un tiempo de espera máximo muy amplio (3 minutos)
+    const controller = new AbortController();
+    const fetchTimeout = setTimeout(() => controller.abort(), 180000); // 180,000 ms = 3 minutos
+
+    const res = await fetch(WEBHOOK_URL, {
+        method: 'POST',
+        body: formData,
+        signal: controller.signal // Enlaza el controlador de tiempo a la petición
+    });
+    
+    // Limpiamos los temporizadores si la petición termina antes
+    clearTimeout(fetchTimeout);
+    clearTimeout(slowAlert1);
+    clearTimeout(slowAlert2);
+    clearTimeout(slowAlert3);
+
+    const textResp = await res.text();
+    let json = {};
+    
+    try {
+      json = JSON.parse(textResp);
+      if(Array.isArray(json)) json = json[0] || {}; 
+    } catch(e) {
+      json = { message: textResp };
+    }
+    
+    if(res.ok || json.status === true || json.success === true) {
+       state.serverData = json; // Guardar respuesta del servidor para el PDF/Impresión
+       state.step = 8; 
+       updateUI();
+       show('stepSuccess');
+       
+       $('successMsg').textContent = json.message || 'Proceso completado con éxito.';
+       
+       let variablesHtml = '<strong style="display:block; margin-bottom:8px; border-bottom:1px solid #bbf7d0; padding-bottom:4px;">Datos recibidos del servidor:</strong>';
+       let foundVars = false;
+       for (const key in json) {
+         if (typeof json[key] !== 'object') {
+           variablesHtml += `<div style="margin-bottom:4px;"><b>${key}:</b> ${json[key]}</div>`;
+           foundVars = true;
+         }
+       }
+       $('successDetails').innerHTML = foundVars ? variablesHtml : '<i>No se devolvieron variables adicionales.</i>';
+
+    } else {
+       throw new Error(json.message || json.error || 'El servidor rechazó la solicitud.');
+    }
+
+  } catch(e) {
+    console.warn("Error de envío:", e); // Usamos console.warn para evitar el log de "crash" agresivo 
+    state.step = 9;
+    updateUI();
+    hide('stepSuccess'); show('stepError');
+    
+    // NUEVO: Manejo específico para cuando se agota el tiempo de espera o falla la red
+    if (e.name === 'AbortError') {
+      $('errorMsgServer').textContent = 'El tiempo de espera se agotó (tomó más de 3 minutos). Revisa tu conexión a internet o intenta de nuevo.';
+    } else if (e.name === 'TypeError' && e.message === 'Failed to fetch') {
+      $('errorMsgServer').textContent = 'Error de red. No se pudo conectar con el servidor (Webhook). Verifica tu conexión o políticas CORS.';
+    } else {
+      $('errorMsgServer').textContent = e.message;
+    }
+  } finally {
+    hide('loader');
+  }
+}
+
+function getPayload() {
+   const sIdx = $('sucursalSelector').value; 
+   const suc = state.sucursales[sIdx] || {};
+   const hasLock = $('chkHasLock').checked;
+   
+   let segStr = 'Libre';
+   if(hasLock) {
+     if(state.type === 'Celular' && state.lockMode === 'pattern') {
+       segStr = `Patrón:${state.pattern.join('-')} | PIN:${$('devicePass').value}`;
+     } else {
+       segStr = `PIN/Contraseña:${$('devicePass').value}`;
+     }
+   }
+
+   let diasUsoVal = 0;
+   const fechaEmi = $('fechaEmisionFactura').value;
+   if(fechaEmi) {
+     const [y, m, d] = fechaEmi.split('-');
+     const f = new Date(y, m - 1, d);
+     const h = new Date(); h.setHours(0,0,0,0);
+     diasUsoVal = Math.ceil((h - f) / (1000 * 60 * 60 * 24));
+   }
+
+   return {
+     empresa: $('clienteNombre').value,
+     cliente_final: $('clienteFinal').value,
+     tipo: state.type, 
+     marca: $('brand').value === 'OTRO' ? $('customBrand').value : $('brand').value,
+     modelo: $('model').value, 
+     imei: $('imei').value, 
+     sucursal: suc.Nombre,
+     agente_receptor: $('agenteReceptor').value.trim(),
+     falla: $('falla').value,
+     seguridad: segStr,
+     enrolado_nuvo: state.nuvo === true,
+     accesorios: $('chkAccesorios').checked ? $('txtAccesorios').value : 'Ninguno',
+     fecha_emision_factura: fechaEmi,
+     dias_uso: diasUsoVal,
+     factura: state.photos.factura ? state.photos.factura.name : 'Sin Factura',
+     email_agencia: suc.mail || suc.correo,
+     telefono_agencia: suc.Telefono,
+     cliente_oppo: $('clienteNumero').value,
+     fecha_compra_oppo: $('fechaCompra').value,
+     factura_oppo: $('numeroFactura').value,
+     retorno_oppo: $('direccionRetorno').value
+   };
+}
+
+function renderSummary() {
+  const d = getPayload();
+  let patternSVG = '';
+  if(state.type === 'Celular' && $('chkHasLock').checked && state.lockMode === 'pattern' && state.pattern.length > 0) {
+    let dotsHTML = '';
+    for(let i=0; i<9; i++) {
+      let row = Math.floor(i/3); let col = i%3;
+      let x = 20 + col*40; let y = 20 + row*40;
+      let num = i+1;
+      let isActive = state.pattern.includes(num);
+      let fill = isActive ? 'var(--primary)' : '#cbd5e1';
+      dotsHTML += `<circle cx="${x}" cy="${y}" r="14" fill="${fill}" />`;
+      if(isActive) {
+         dotsHTML += `<text x="${x}" y="${y}" fill="#fff" font-size="12" font-family="sans-serif" font-weight="bold" text-anchor="middle" dominant-baseline="central">${num}</text>`;
+      }
+    }
+    
+    let linesHTML = ''; let path = '';
+    for(let i=0; i<state.pattern.length; i++) {
+      let idx = state.pattern[i] - 1;
+      let row = Math.floor(idx/3); let col = idx%3;
+      let x = 20 + col*40; let y = 20 + row*40;
+      if(i===0) path += `M ${x} ${y}`;
+      else path += ` L ${x} ${y}`;
+    }
+    if(path) { linesHTML = `<path d="${path}" stroke="var(--primary)" stroke-width="4" stroke-linecap="round" fill="none" opacity="0.5" />`; }
+    
+    patternSVG = `<div style="text-align:center; margin:15px 0;"><svg width="120" height="120" style="background:#fff; border-radius:8px; border:1px solid #e2e8f0;">${linesHTML}${dotsHTML}</svg><div style="font-size:0.85rem; margin-top:4px; font-weight:bold; color:var(--primary);">Patrón: ${state.pattern.join('-')}</div></div>`;
+  }
+
+  let photosHTML = `<div style="display:flex; gap:10px; margin-top:10px; flex-wrap:wrap; justify-content:center;">`;
+  const addThumb = (file, label) => {
+    if(!file) return '';
+    return `<div style="position:relative; width:70px; height:70px;"><img src="${URL.createObjectURL(file)}" style="width:100%; height:100%; object-fit:cover; border-radius:8px; border:1px solid #cbd5e1;" title="${label}"><div style="position:absolute; bottom:0; left:0; right:0; background:rgba(0,0,0,0.6); color:#fff; font-size:0.55rem; text-align:center; padding:2px 0; border-bottom-left-radius:8px; border-bottom-right-radius:8px;">${label}</div></div>`;
+  };
+
+  photosHTML += addThumb(state.photos.front, 'Frente');
+  photosHTML += addThumb(state.photos.back, 'Atrás');
+  if($('chkAccesorios').checked) photosHTML += addThumb(state.photos.acc, 'Acces.');
+  photosHTML += addThumb(state.photos.factura, 'Factura');
+  photosHTML += `</div>`;
+
+  let oppoHTML = '';
+  if(d.marca === 'OPPO' || d.marca === 'Oppo') {
+    oppoHTML = `<hr style="margin:12px 0; border:0; border-top:1px dashed #e5e7eb;">
+                <p><strong>No. Cliente OPPO:</strong> ${d.cliente_oppo || '-'}</p>
+                <p><strong>Fecha Compra:</strong> ${d.fecha_compra_oppo || '-'}</p>
+                <p><strong>Factura OPPO:</strong> ${d.factura_oppo || '-'}</p>
+                <p><strong>Retorno:</strong> ${d.retorno_oppo || '-'}</p>`;
+  }
+
+  $('finalSummary').innerHTML = `
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
+      <p style="margin:0; grid-column: span 2;"><strong>Empresa:</strong> ${d.empresa}</p>
+      <p style="margin:0; grid-column: span 2;"><strong>Cliente:</strong> ${d.cliente_final}</p>
+      <p style="margin:0;"><strong>Tipo:</strong> ${d.tipo}</p>
+      <p style="margin:0;"><strong>Equipo:</strong> ${d.marca} ${d.modelo}</p>
+      <p style="margin:0;"><strong>${d.tipo === 'Celular' ? 'IMEI' : 'S/N'}:</strong> ${d.imei}</p>
+      <p style="margin:0;"><strong>Origen:</strong> ${d.sucursal}</p>
+      <p style="margin:0; grid-column: span 2;"><strong>Recibe (Agencia):</strong> ${d.agente_receptor}</p>
+    </div>
+    <p style="margin-top:8px;"><strong>Falla:</strong> ${d.falla}</p>
+    
+    <hr style="margin:12px 0; border:0; border-top:1px dashed #e5e7eb;">
+    
+    <p style="margin:0;"><strong>Enrolado Nuvo:</strong> ${d.enrolado_nuvo ? 'Sí' : 'No'}</p>
+    <p style="margin:0;"><strong>Seguridad:</strong> ${d.seguridad}</p>
+    ${patternSVG}
+    <p style="margin-top:8px;"><strong>Accesorios:</strong> ${d.accesorios}</p>
+    
+    ${oppoHTML}
+    
+    <hr style="margin:12px 0; border:0; border-top:1px dashed #e5e7eb;">
+    
+    <p style="margin:0;"><strong>Factura Adjunta:</strong> ${d.factura}</p>
+    <p style="margin:0;"><strong>Fecha Factura:</strong> ${d.fecha_emision_factura} (${d.dias_uso} días)</p>
+    <p style="margin-top:8px; margin-bottom:0;"><strong>Evidencias adjuntas:</strong></p>
+    ${photosHTML}
+  `;
+}
+
+// Función principal para generar el HTML de la constancia (se usa en Imprimir y en PDF)
+async function buildConstanciaHTMLString() {
+  const d = getPayload(); 
+  let frontB64 = '';
+  let backB64 = '';
+  let accB64 = '';
+  let facturaB64 = '';
+  
+  try {
+    if(state.photos.front) frontB64 = await fileToBase64(state.photos.front);
+    if(state.photos.back) backB64 = await fileToBase64(state.photos.back);
+    if(state.photos.acc) accB64 = await fileToBase64(state.photos.acc);
+    if(state.photos.factura) facturaB64 = await fileToBase64(state.photos.factura);
+  } catch(e) { console.warn("Error convirtiendo imágenes para impresión", e); }
+
+  // CORRECCIÓN COMPACTA PARA EVIDENCIAS
+  let imgHtml = `<p style="font-weight:bold; text-align:left; font-size:13px; margin-bottom:5px;">Evidencias Adjuntas:</p>
+                 <table style="width:100%; text-align:center; border-collapse:collapse; border:none;"><tr>`;
+  if(frontB64) imgHtml += `<td style="padding:2px;"><img src="${frontB64}" style="width:75px; height:75px; object-fit:cover; border:1px solid #ccc; border-radius:4px;"><br><span style="font-size:10px;">Frente</span></td>`;
+  if(backB64) imgHtml += `<td style="padding:2px;"><img src="${backB64}" style="width:75px; height:75px; object-fit:cover; border:1px solid #ccc; border-radius:4px;"><br><span style="font-size:10px;">Atrás</span></td>`;
+  if(accB64) imgHtml += `<td style="padding:2px;"><img src="${accB64}" style="width:75px; height:75px; object-fit:cover; border:1px solid #ccc; border-radius:4px;"><br><span style="font-size:10px;">Accesorios</span></td>`;
+  if(facturaB64) imgHtml += `<td style="padding:2px;"><img src="${facturaB64}" style="width:75px; height:75px; object-fit:cover; border:1px solid #ccc; border-radius:4px;"><br><span style="font-size:10px;">Factura</span></td>`;
+  imgHtml += `</tr></table>`;
+
+  // CORRECCIÓN COMPACTA PARA EL PATRÓN (Reducido de 120px a 100px)
+  let patternHtml = '';
+  if(state.type === 'Celular' && d.seguridad.includes('Patrón:') && state.pattern.length > 0) {
+    let dotsHTML = '';
+    for(let i=0; i<9; i++) {
+      let row = Math.floor(i/3); let col = i%3;
+      let x = 20 + col*40; let y = 20 + row*40;
+      let num = i+1;
+      let isActive = state.pattern.includes(num);
+      let fill = isActive ? '#b30000' : '#cbd5e1';
+      dotsHTML += `<circle cx="${x}" cy="${y}" r="14" fill="${fill}" />`;
+      if(isActive) {
+         dotsHTML += `<text x="${x}" y="${y+4}" fill="#fff" font-size="12" font-family="sans-serif" font-weight="bold" text-anchor="middle">${num}</text>`;
+      }
+    }
+    
+    let linesHTML = ''; let path = '';
+    for(let i=0; i<state.pattern.length; i++) {
+      let idx = state.pattern[i] - 1;
+      let row = Math.floor(idx/3); let col = idx%3;
+      let x = 20 + col*40; let y = 20 + row*40;
+      if(i===0) path += `M ${x} ${y}`;
+      else path += ` L ${x} ${y}`;
+    }
+    if(path) { linesHTML = `<path d="${path}" stroke="#b30000" stroke-width="4" stroke-linecap="round" fill="none" opacity="0.5" />`; }
+    
+    patternHtml = `<p style="font-weight:bold; text-align:center; font-size:13px; margin-bottom:5px;">Patrón de desbloqueo:</p>
+                   <div style="text-align:center;">
+                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="100" height="100" style="background:#fff; border-radius:8px; border:1px solid #e2e8f0; display:inline-block;">${linesHTML}${dotsHTML}</svg>
+                     <div style="font-size:11px; margin-top:2px; font-weight:bold; color:#b30000; text-align:center;">Secuencia: ${state.pattern.join('-')}</div>
+                   </div>`;
+  }
+
+  let oppoRows = '';
+  if(d.marca === 'OPPO' || d.marca === 'Oppo') {
+    oppoRows = `
+      <tr><th style="padding:4px 6px; border:1px solid #ccc; background:#f9fafb; width:25%;">Cliente OPPO</th><td style="padding:4px 6px; border:1px solid #ccc;">${d.cliente_oppo || '-'}</td></tr>
+      <tr><th style="padding:4px 6px; border:1px solid #ccc; background:#f9fafb; width:25%;">Fecha Compra</th><td style="padding:4px 6px; border:1px solid #ccc;">${d.fecha_compra_oppo || '-'}</td></tr>
+      <tr><th style="padding:4px 6px; border:1px solid #ccc; background:#f9fafb; width:25%;">Factura OPPO</th><td style="padding:4px 6px; border:1px solid #ccc;">${d.factura_oppo || '-'}</td></tr>
+      <tr><th style="padding:4px 6px; border:1px solid #ccc; background:#f9fafb; width:25%;">Retorno OPPO</th><td style="padding:4px 6px; border:1px solid #ccc;">${d.retorno_oppo || '-'}</td></tr>
+    `;
+  }
+
+  let serverDataHtml = '';
+  if (state.serverData) {
+      serverDataHtml = '<h3 style="margin-top:10px; font-size:14px; border-bottom:1px solid #000; padding-bottom:3px;">Datos del Sistema</h3><table style="width:100%; text-align:left; border-collapse:collapse; margin-bottom:10px; font-size:11px;">';
+      for (const key in state.serverData) {
+          if (typeof state.serverData[key] !== 'object') {
+              serverDataHtml += `<tr><th style="padding:4px 6px; border:1px solid #ccc; background:#f9fafb; width:30%;">${key}</th><td style="padding:4px 6px; border:1px solid #ccc;">${state.serverData[key]}</td></tr>`;
+          }
+      }
+      serverDataHtml += '</table>';
+  }
+
+  // SE INCLUYE EMAIL Y TELÉFONO DE AGENCIA PARA QUE TODO ESTÉ EN LA CONSTANCIA
+  let infoAgencia = d.sucursal;
+  if (d.telefono_agencia || d.email_agencia) {
+    infoAgencia += ` (Tel: ${d.telefono_agencia || '-'} | Email: ${d.email_agencia || '-'})`;
+  }
+
+  // APLICACIÓN DE DISEÑO COMPACTO PARA UNA HOJA
+  return `
+    <div style="font-family: Arial, sans-serif; padding:20px 30px; max-width:800px; margin:0 auto; color:#111; background:#fff;">
+      <h2 style="text-align:center; border-bottom:2px solid #000; padding-bottom:8px; margin-bottom:15px; font-size:18px;">
+        CONSTANCIA DE INGRESO A GARANTÍA / TALLER
+      </h2>
+      
+      <p style="text-align:right; font-size:12px; margin-bottom:10px;"><b>Fecha:</b> ${new Date().toLocaleString()}</p>
+      
+      <table style="width:100%; text-align:left; border-collapse:collapse; margin-bottom:10px; font-size:12px;">
+        <tr><th style="padding:4px 6px; border:1px solid #ccc; background:#f9fafb; width:25%;">Agencia/Origen</th><td style="padding:4px 6px; border:1px solid #ccc;">${infoAgencia}</td></tr>
+        <tr><th style="padding:4px 6px; border:1px solid #ccc; background:#f9fafb;">Empresa</th><td style="padding:4px 6px; border:1px solid #ccc;">${d.empresa}</td></tr>
+        <tr><th style="padding:4px 6px; border:1px solid #ccc; background:#f9fafb;">Cliente Final</th><td style="padding:4px 6px; border:1px solid #ccc;">${d.cliente_final}</td></tr>
+        <tr><th style="padding:4px 6px; border:1px solid #ccc; background:#f9fafb;">Equipo</th><td style="padding:4px 6px; border:1px solid #ccc;">${d.marca} ${d.modelo}</td></tr>
+        <tr><th style="padding:4px 6px; border:1px solid #ccc; background:#f9fafb;">Tipo</th><td style="padding:4px 6px; border:1px solid #ccc;">${d.tipo}</td></tr>
+        <tr><th style="padding:4px 6px; border:1px solid #ccc; background:#f9fafb;">IMEI/Serie</th><td style="padding:4px 6px; border:1px solid #ccc; font-weight:bold;">${d.imei}</td></tr>
+        <tr><th style="padding:4px 6px; border:1px solid #ccc; background:#f9fafb;">Falla Reportada</th><td style="padding:4px 6px; border:1px solid #ccc;">${d.falla}</td></tr>
+        <tr><th style="padding:4px 6px; border:1px solid #ccc; background:#f9fafb;">Accesorios</th><td style="padding:4px 6px; border:1px solid #ccc;">${d.accesorios}</td></tr>
+        <tr><th style="padding:4px 6px; border:1px solid #ccc; background:#f9fafb;">Fecha Factura</th><td style="padding:4px 6px; border:1px solid #ccc;">${d.fecha_emision_factura} (${d.dias_uso} días de uso)</td></tr>
+        <tr><th style="padding:4px 6px; border:1px solid #ccc; background:#f9fafb;">Enrolado Nuvo</th><td style="padding:4px 6px; border:1px solid #ccc;">${d.enrolado_nuvo ? 'Sí' : 'No'}</td></tr>
+        <tr><th style="padding:4px 6px; border:1px solid #ccc; background:#f9fafb;">Seguridad</th><td style="padding:4px 6px; border:1px solid #ccc;">${d.seguridad}</td></tr>
+        ${oppoRows}
+      </table>
+
+      ${serverDataHtml}
+
+      <table style="width:100%; margin-top:15px; border-collapse:collapse; border:none;">
+        <tr>
+          <td style="width:65%; vertical-align:top; text-align:left;">
+            ${imgHtml}
+          </td>
+          <td style="width:35%; vertical-align:top; text-align:center;">
+            ${patternHtml}
+          </td>
+        </tr>
+      </table>
+
+      <div style="margin-top:15px;">
+        <p style="font-weight:bold; margin-bottom:5px; font-size:13px;">Observaciones:</p>
+        <div style="border:1px solid #000; width:100%; height:40px; border-radius:4px;"></div>
+      </div>
+
+      <table style="width:100%; margin-top:30px; text-align:center; font-size:12px; border-collapse:collapse; border:none;">
+        <tr>
+          <!-- 1. Firma Cliente (Entrega) -->
+          <td style="width:25%; vertical-align:top; padding:0 5px;">
+            <div style="border-top:1px solid #000; padding-top:4px; font-weight:bold;">Firma Cliente</div>
+            <div style="font-weight:normal; color:#555; margin-bottom:12px; font-size:10px;">(Entrega equipo)</div>
+            <div style="text-align:left; font-size:11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Nombre: ${d.cliente_final}</div>
+          </td>
+          <!-- 2. Firma Agencia (Recibe) -->
+          <td style="width:25%; vertical-align:top; padding:0 5px;">
+            <div style="border-top:1px solid #000; padding-top:4px; font-weight:bold;">Firma Agencia</div>
+            <div style="font-weight:normal; color:#555; margin-bottom:12px; font-size:10px;">(Recibe equipo)</div>
+            <div style="text-align:left; font-size:11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Nombre: ${d.agente_receptor}</div>
+          </td>
+          <!-- 3. Firma Agencia (Entrega) -->
+          <td style="width:25%; vertical-align:top; padding:0 5px;">
+            <div style="border-top:1px solid #000; padding-top:4px; font-weight:bold;">Firma Agencia</div>
+            <div style="font-weight:normal; color:#555; margin-bottom:12px; font-size:10px;">(Entrega equipo)</div>
+            <div style="text-align:left; font-size:11px;">Nombre: _______________</div>
+          </td>
+          <!-- 4. Firma Cliente (Recibe) -->
+          <td style="width:25%; vertical-align:top; padding:0 5px;">
+            <div style="border-top:1px solid #000; padding-top:4px; font-weight:bold;">Firma Cliente</div>
+            <div style="font-weight:normal; color:#555; margin-bottom:12px; font-size:10px;">(Recibe equipo)</div>
+            <div style="text-align:left; font-size:11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Nombre: ${d.cliente_final}</div>
+          </td>
+        </tr>
+      </table>
+    </div>
+  `;
+}
+
+async function printConstancia() {
+  const w = window.open('','_blank');
+  w.document.write('<html><head><title>Generando Constancia...</title></head><body style="font-family:sans-serif; padding:20px; text-align:center;"><h2>Preparando documento...</h2></body></html>');
+  
+  const content = await buildConstanciaHTMLString();
+  
+  w.document.open();
+  w.document.write(`
+    <html>
+      <head><title>Constancia Agencia</title></head>
+      <body style="margin:0; padding:0;">
+        ${content}
+        <script>
+          setTimeout(() => { window.print(); }, 800);
+        <\/script>
+      </body>
+    </html>
+  `);
+  w.document.close();
+}
+
+init();
+
+</script>
+</body>
+</html>
